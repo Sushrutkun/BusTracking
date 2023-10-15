@@ -1,0 +1,35 @@
+name: BusTracking
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    environment: productions
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: remove prev environment file
+        run: |
+          rm .env || true
+
+      - name: Create .env file
+        run: |
+          echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env
+
+      - name: remove previous container
+        run: |
+          docker stop bustracker || true
+          docker rm bustracker || true
+          docker image remove bustracker:latest || true
+      - name: Build and push Docker images
+        run: |
+          docker build -t bustracker:latest . --no-cache
+
+      - name: Deploy Docker container
+        run: |
+          docker run -d --name bustracker -p 3020:3000 bustracker:latest
